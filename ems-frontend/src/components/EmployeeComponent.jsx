@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { createEmployee } from '../services/EmployeeService';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { createEmployee, getEmployee, updateEmployee } from '../services/EmployeeService';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const EmployeeComponent = () => { 
     const [employee, setEmployee] = useState({
@@ -8,6 +8,8 @@ const EmployeeComponent = () => {
         lastName: '', 
         email: ''
     });
+
+    const {id} = useParams();
     
     const [errors, setErrors] = useState({
         firstName: '',
@@ -15,7 +17,23 @@ const EmployeeComponent = () => {
         email: ''
     });
 
+
     const navigator = useNavigate();
+
+    useEffect(() => {
+          if (id) {
+            getEmployee(id).then((response) => {
+               setEmployee({
+                firstName: response.data.firstName,
+                lastName: response.data.lastName,
+                email: response.data.email
+               });
+            }).catch(error => {
+               console.error(error);
+           });
+           }
+        }, [id]);
+
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -38,54 +56,75 @@ const EmployeeComponent = () => {
         const newErrors = {...errors};
         
         if (!employee.firstName.trim()) {
-            newErrors.firstName = 'First Name is required';
+            newErrors.firstName = 'Enter Employee First Name';
             valid = false;
-        } else {
+          } else {
             newErrors.firstName = '';
         }
         
         if (!employee.lastName.trim()) {
-            newErrors.lastName = 'Last Name is required';
+            newErrors.lastName = 'Enter Employee Last Name';
             valid = false;
-        } else {
+           } else {
             newErrors.lastName = '';
         }
         
         if (!employee.email.trim()) {
-            newErrors.email = 'Email is required';
+            newErrors.email = 'Enter Employee Email';
             valid = false;
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email)) {
-            newErrors.email = 'Please enter a valid email';
+           } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email)) {
+            newErrors.email = 'Please enter valid email';
             valid = false;
-        } else {
+           } else {
             newErrors.email = '';
         }
         
         setErrors(newErrors);
         return valid;
     };
+      
+         function pageTitle(){
+            if(id){
+                return <h2 className='text-center'>Update Employee</h2> 
+            } else {
+                return <h2 className='text-center'>Add Employee</h2> 
+            }
+         }
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        
-        if (validateForm()) {
+   const saveOrUpdateEmployee = (e) => {
+    e.preventDefault();
+
+    if (validateForm()) {
+        if (id) {
+            // Update existing employee
+            updateEmployee(id, employee).then((response) => {
+                console.log('Employee updated:', response.data);
+                navigator('/employees');
+            }).catch(error => {
+                console.error('Error updating employee:', error);
+            });
+        } else {
+            // Create new employee
             createEmployee(employee).then((response) => {
-                console.log(response.data);
+                console.log('Employee created:', response.data);
                 navigator('/employees');
             }).catch(error => {
                 console.error('Error creating employee:', error);
             });
         }
     }
+};
 
   return (
     <div className='container'>
          <br /> <br />
           <div className='row'>
              <div className='card col-md-6 offset-md-3'>
-                 <h2 className='text-center'>Add Employee</h2>
+                {
+                    pageTitle()
+                }
                  <div className='card-body'>
-                     <form onSubmit={handleSubmit} noValidate>
+                     <form onSubmit={saveOrUpdateEmployee} noValidate>
                         <div className='form-group mb-2'>
                              <label className='form-label'>First Name: </label>
                              <input
